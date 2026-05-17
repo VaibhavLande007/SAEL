@@ -2,6 +2,9 @@ package com.sael.domain.entity;
 import com.sael.domain.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -12,9 +15,18 @@ public class NotificationLog {
     @Column(name="tenantId",nullable=false) private UUID tenantId;
     @Column(name="recipientId",nullable=false) private UUID recipientId;
     @Column(name="alertId") private UUID alertId;
-    @Enumerated(EnumType.STRING) @Column(nullable=false) private NotificationChannel channel;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable=false)
+    private NotificationChannel channel;
+
     @Column(name="messagePreview",columnDefinition="TEXT") private String messagePreview;
-    @Enumerated(EnumType.STRING) @Builder.Default private NotificationStatus status=NotificationStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Builder.Default private NotificationStatus status=NotificationStatus.PENDING;
+
     @Builder.Default private Integer attempts=0;
     @Column(name="sentAt") private OffsetDateTime sentAt;
     @Column(name="deliveredAt") private OffsetDateTime deliveredAt;

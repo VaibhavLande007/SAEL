@@ -2,6 +2,9 @@ package com.sael.domain.entity;
 import com.sael.domain.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -25,7 +28,15 @@ public class TelemetryReading {
     @Column(name="doorChanged",nullable=false) @Builder.Default private Boolean doorChanged=false;
     @Column(name="firmwareVersion",length=100) private String firmwareVersion;
     @Column(name="signalStrengthDbm") private Short signalStrengthDbm;
-    @Enumerated(EnumType.STRING) @Column(name="qualityFlag",nullable=false) @Builder.Default private QualityFlag qualityFlag=QualityFlag.GOOD;
-    @Enumerated(EnumType.STRING) @Column(name="ingestionSrc",nullable=false) @Builder.Default private IngestionSource ingestionSrc=IngestionSource.MQTT;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name="qualityFlag")
+    @Builder.Default private QualityFlag qualityFlag=QualityFlag.GOOD;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name="ingestionSrc")
+    @Builder.Default private IngestionSource ingestionSrc=IngestionSource.MQTT;
+
     @Column(name="recordedAt",nullable=false) private OffsetDateTime recordedAt;
 }

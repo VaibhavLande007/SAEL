@@ -18,6 +18,7 @@ public class OrgService {
     private final LabRepository labRepo;
 
     // ── Networks ──────────────────────────────────────────────────────────────
+    @Transactional(readOnly=true)
     public Page<Map<String,Object>> listNetworks(Pageable p){
         return networkRepo.findAllByTenant_IdAndDeletedAtIsNull(TenantContext.requireTenantId(),p)
             .map(this::networkMap);
@@ -49,6 +50,7 @@ public class OrgService {
     }
 
     // ── Hospitals ─────────────────────────────────────────────────────────────
+    @Transactional(readOnly=true)
     public Page<Map<String,Object>> listHospitals(UUID networkId,Pageable p){
         return hospitalRepo.findAllByNetwork_IdAndDeletedAtIsNull(networkId,p).map(this::hospitalMap);
     }
@@ -82,9 +84,11 @@ public class OrgService {
     }
 
     // ── Labs ──────────────────────────────────────────────────────────────────
+    @Transactional(readOnly=true)
     public Page<Map<String,Object>> listLabsByHospital(UUID hospitalId,Pageable p){
         return labRepo.findAllByHospital_IdAndDeletedAtIsNull(hospitalId,p).map(this::labMap);
     }
+    @Transactional(readOnly=true)
     public Page<Map<String,Object>> listAllLabs(UUID networkId,String status,Pageable p){
         return labRepo.findAllScoped(TenantContext.requireTenantId(),networkId,p).map(this::labMap);
     }

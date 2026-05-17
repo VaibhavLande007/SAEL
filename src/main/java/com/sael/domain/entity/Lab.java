@@ -24,7 +24,8 @@ public class Lab {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "operationalStatus")
     @Builder.Default
-    private OperationalStatus operationalStatus = OperationalStatus.ACTIVE;    @Column(name="createdAt",updatable=false) private OffsetDateTime createdAt;
+    private OperationalStatus operationalStatus = OperationalStatus.ACTIVE;
+    @Column(name="createdAt",updatable=false) private OffsetDateTime createdAt;
     @Column(name="updatedAt") private OffsetDateTime updatedAt;
     @Column(name="deletedAt") private OffsetDateTime deletedAt;
     @OneToMany(mappedBy="lab",fetch=FetchType.LAZY) @Builder.Default private List<Alert> alerts=new ArrayList<>();

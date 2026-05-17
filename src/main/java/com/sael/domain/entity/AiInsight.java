@@ -15,8 +15,16 @@ public class AiInsight {
     @Column(name="labId") private UUID labId;
     @Column(name="sourceEntityType") private String sourceEntityType;
     @Column(name="sourceEntityId") private UUID sourceEntityId;
-    @Enumerated(EnumType.STRING) @Column(name="insightType",nullable=false) private InsightType insightType;
-    @Enumerated(EnumType.STRING) @Column(nullable=false) private InsightPriority priority;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name="insightType",nullable=false)
+    private InsightType insightType;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable=false)
+    private InsightPriority priority;
+
     @Column(name="confidenceScore",nullable=false) private Integer confidenceScore;
     @Column(nullable=false) private String title;
     @Column(name="insightText",nullable=false,columnDefinition="TEXT") private String insightText;
@@ -24,7 +32,11 @@ public class AiInsight {
     @Column(name="actionTaken",columnDefinition="TEXT") private String actionTaken;
     @JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition="jsonb") @Builder.Default private Map<String,Object> metadata=new HashMap<>();
     @Column(name="expiresAt") private OffsetDateTime expiresAt;
-    @Enumerated(EnumType.STRING) @Column(name="generatedBy") @Builder.Default private InsightGenerator generatedBy=InsightGenerator.SIA;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name="generatedBy")
+    @Builder.Default private InsightGenerator generatedBy=InsightGenerator.SIA;
+
     @Column(name="createdAt",updatable=false) private OffsetDateTime createdAt;
     // UI-only field (not in DB — computed on the fly)
     @Transient private Boolean isRead=false;

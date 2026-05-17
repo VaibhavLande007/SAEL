@@ -2,6 +2,9 @@ package com.sael.domain.entity;
 import com.sael.domain.enums.KpiSource;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -20,7 +23,11 @@ public class KpiSubmission {
     @Column(name="implantationRate",precision=5,scale=2) private BigDecimal implantationRate;
     @Column(name="m2Rate",precision=5,scale=2) private BigDecimal m2Rate;
     @Column(columnDefinition="TEXT") private String notes;
-    @Enumerated(EnumType.STRING) @Builder.Default private KpiSource source=KpiSource.MANUAL;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Builder.Default private KpiSource source=KpiSource.MANUAL;
+
     @Column(name="submittedAt") private OffsetDateTime submittedAt;
     @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="submittedBy",insertable=false,updatable=false) private User submittedByUser;
     @PrePersist void prePersist(){if(id==null)id=UUID.randomUUID();if(submittedAt==null)submittedAt=OffsetDateTime.now();}

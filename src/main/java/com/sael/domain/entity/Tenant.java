@@ -13,8 +13,15 @@ public class Tenant {
     @Id @Column(columnDefinition="uuid") private UUID id;
     @Column(nullable=false) private String name;
     @Column(nullable=false,unique=true) private String slug;
-    @Enumerated(EnumType.STRING) @Column(nullable=false) @Builder.Default private TenantStatus status=TenantStatus.ACTIVE;
-    @Enumerated(EnumType.STRING) @Column(nullable=false) @Builder.Default private TenantPlan plan=TenantPlan.STARTER;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable=false)
+    @Builder.Default private TenantStatus status=TenantStatus.ACTIVE;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable=false)
+    @Builder.Default private TenantPlan plan=TenantPlan.STARTER;
     @JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition="jsonb") @Builder.Default private Map<String,Object> config=new HashMap<>();
     @Column(name="createdAt",updatable=false) private OffsetDateTime createdAt;
     @Column(name="updatedAt") private OffsetDateTime updatedAt;

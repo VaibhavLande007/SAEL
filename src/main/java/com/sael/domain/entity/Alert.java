@@ -2,6 +2,9 @@ package com.sael.domain.entity;
 import com.sael.domain.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -18,12 +21,21 @@ public class Alert {
     @Column(name="deviceId",nullable=false) private UUID deviceId;
     @Column(name="alertRuleId") private UUID alertRuleId;
     @Column(nullable=false) private String parameter;
-    @Enumerated(EnumType.STRING) @Column(nullable=false) private AlertSeverity severity;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable=false)
+    private AlertSeverity severity;
+
     @Column(nullable=false,columnDefinition="TEXT") private String message;
     @Column(name="triggerValue",nullable=false,precision=10,scale=4) private BigDecimal triggerValue;
     @Column(name="thresholdValue",nullable=false,precision=10,scale=4) private BigDecimal thresholdValue;
     @Column(name="isPredicted") @Builder.Default private Boolean isPredicted=false;
-    @Enumerated(EnumType.STRING) @Builder.Default private AlertStatus status=AlertStatus.ACTIVE;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Builder.Default private AlertStatus status=AlertStatus.ACTIVE;
+
     @Column(name="acknowledgedBy") private UUID acknowledgedBy;
     @Column(name="acknowledgedAt") private OffsetDateTime acknowledgedAt;
     @Column(name="resolvedAt") private OffsetDateTime resolvedAt;

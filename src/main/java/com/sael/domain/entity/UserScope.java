@@ -2,6 +2,9 @@ package com.sael.domain.entity;
 import com.sael.domain.enums.ScopeEntityType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -10,7 +13,12 @@ import java.util.UUID;
 public class UserScope {
     @Id @Column(columnDefinition="uuid") private UUID id;
     @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="userId",nullable=false) private User user;
-    @Enumerated(EnumType.STRING) @Column(name="entityType",nullable=false) private ScopeEntityType entityType;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name="entityType",nullable=false)
+    private ScopeEntityType entityType;
+
     @Column(name="entityId",nullable=false) private UUID entityId;
     @Column(name="grantedBy") private UUID grantedBy;
     @Column(name="grantedAt",updatable=false) private OffsetDateTime grantedAt;
