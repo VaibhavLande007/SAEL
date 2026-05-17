@@ -1,0 +1,46 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: sael-backend
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:sael.postgres.database.azure.com}:${DB_PORT:5432}/${DB_NAME:sael_db}
+    username: ${DB_USER:sael}
+    password: ${DB_PASS:Divine@59_Rra}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+
+  jpa:
+    hibernate:
+      ddl-auto: none          # Prisma owns the schema — never touch it
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    properties:
+      hibernate:
+        globally_quoted_identifiers: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: public
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+    show-sql: false
+
+  flyway:
+    enabled: false            # Prisma manages migrations
+
+jwt:
+  secret: ${JWT_SECRET:bXlTdXBlclNlY3JldEtleUZvclNBRUxQbGF0Zm9ybTIwMjVTZWN1cmVCYXNlNjRFbmNvZGVkU3RyaW5n}
+  access-token-expiry-ms: 86400000    # 24h
+  refresh-token-expiry-ms: 604800000  # 7d
+
+logging:
+  level:
+    root: INFO
+    com.sael: DEBUG
+    org.springframework.security: INFO

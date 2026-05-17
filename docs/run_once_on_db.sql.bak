@@ -1,0 +1,32 @@
+-- Run this ONCE on your existing Azure PostgreSQL database.
+-- This adds the refresh_tokens table (not in Prisma schema) and
+-- adds network_id to notification_recipients (needed by WhatsApp recipients API).
+
+-- Refresh tokens for logout/token rotation support
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id          UUID        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash  TEXT        NOT NULL UNIQUE,
+    expires_at  TIMESTAMPTZ NOT NULL,
+    revoked     BOOLEAN     NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id) WHERE revoked = FALSE;
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
+
+-- Add network_id to notification_recipients (for WhatsApp scoping per network)
+ALTER TABLE notification_recipients ADD COLUMN IF NOT EXISTS network_id UUID REFERENCES networks(id);
+ALTER TABLE notification_recipients ADD COLUMN IF NOT EXISTS receives_critical BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE notification_recipients ADD COLUMN IF NOT EXISTS receives_warning BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE notification_recipients ADD COLUMN IF NOT EXISTS receives_daily_summary BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE INDEX IF NOT EXISTS idx_notif_recipients_network ON notification_recipients(network_id);
+
+-- Seed system roles (safe — uses WHERE NOT EXISTS)
+INSERT INTO roles (id, tenant_id, name, description, is_system)
+SELECT gen_random_uuid(), NULL, 'SYSTEM_ADMIN',   'Platform super admin',  TRUE WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name='SYSTEM_ADMIN'  AND tenant_id IS NULL);
+INSERT INTO roles (id, tenant_id, name, description, is_system)
+SELECT gen_random_uuid(), NULL, 'NETWORK_ADMIN',  'Network admin',         TRUE WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name='NETWORK_ADMIN' AND tenant_id IS NULL);
+INSERT INTO roles (id, tenant_id, name, description, is_system)
+SELECT gen_random_uuid(), NULL, 'LAB_MANAGER',    'Lab manager',           TRUE WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name='LAB_MANAGER'   AND tenant_id IS NULL);
+INSERT INTO roles (id, tenant_id, name, description, is_system)
+SELECT gen_random_uuid(), NULL, 'EMBRYOLOGIST',   'Read-only lab user',    TRUE WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name='EMBRYOLOGIST'  AND tenant_id IS NULL);
