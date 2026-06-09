@@ -13,4 +13,5 @@ public interface LabRepository extends JpaRepository<Lab,UUID> {
     Page<Lab> findAllScoped(@Param("tid") UUID tenantId, @Param("nid") UUID networkId, Pageable p);
     long countByHospital_IdAndDeletedAtIsNull(UUID hospitalId);
     long countByHospital_Network_IdAndDeletedAtIsNull(UUID networkId);
+    long countByDeletedAtIsNull();
 }

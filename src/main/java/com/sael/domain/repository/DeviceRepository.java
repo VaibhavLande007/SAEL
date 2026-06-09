@@ -10,6 +10,7 @@ public interface DeviceRepository extends JpaRepository<Device,UUID> {
     @Query(value="SELECT d FROM Device d WHERE d.tenantId=:tid AND (:status IS NULL OR d.onlineStatus=:status)")
     Page<Device> findByTenantAndStatus(@Param("tid") UUID tenantId, @Param("status") Boolean status, Pageable p);
     long countByTenantIdAndOnlineStatus(UUID tenantId, boolean status);
+    long countByOnlineStatus(boolean status);
     @Modifying @Query("UPDATE Device d SET d.onlineStatus=:s, d.lastSeenAt=CURRENT_TIMESTAMP WHERE d.id=:id")
     void updateStatus(@Param("id") UUID id, @Param("s") boolean status);
 }

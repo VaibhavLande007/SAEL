@@ -11,10 +11,14 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice @Slf4j
 public class GlobalExceptionHandler {
-    private Map<String,Object> err(String code,String msg){
+    private Map<String,Object> err(String code,String msg,int status){
         var e=new LinkedHashMap<String,Object>();
         e.put("code",code);e.put("message",msg);e.put("timestamp",OffsetDateTime.now());
-        return Map.of("error",e);
+        var wrapper=new LinkedHashMap<String,Object>();
+        wrapper.put("error",e);
+        wrapper.put("message",msg);
+        wrapper.put("statusCode",status);
+        return wrapper;
     }
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> validation(MethodArgumentNotValidException ex){
@@ -24,18 +28,20 @@ public class GlobalExceptionHandler {
         var e=new LinkedHashMap<String,Object>();
         e.put("code","VALIDATION_ERROR");e.put("message","Validation failed");e.put("errors",errors);
         body.put("error",e);
+        body.put("message","Validation failed");
+        body.put("statusCode",400);
         return ResponseEntity.badRequest().body(body);
     }
     @ExceptionHandler(AuthException.class)
-    public ResponseEntity<?> auth(AuthException ex){return ResponseEntity.status(401).body(err("AUTH_ERROR",ex.getMessage()));}
+    public ResponseEntity<?> auth(AuthException ex){return ResponseEntity.status(401).body(err("AUTH_ERROR",ex.getMessage(),401));}
     @ExceptionHandler({ForbiddenException.class,AccessDeniedException.class})
-    public ResponseEntity<?> forbidden(Exception ex){return ResponseEntity.status(403).body(err("FORBIDDEN","Insufficient permissions"));}
+    public ResponseEntity<?> forbidden(Exception ex){return ResponseEntity.status(403).body(err("FORBIDDEN","Insufficient permissions",403));}
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<?> notFound(ResourceNotFoundException ex){return ResponseEntity.status(404).body(err("NOT_FOUND",ex.getMessage()));}
+    public ResponseEntity<?> notFound(ResourceNotFoundException ex){return ResponseEntity.status(404).body(err("NOT_FOUND",ex.getMessage(),404));}
     @ExceptionHandler(ConflictException.class)
-    public ResponseEntity<?> conflict(ConflictException ex){return ResponseEntity.status(409).body(err("CONFLICT",ex.getMessage()));}
+    public ResponseEntity<?> conflict(ConflictException ex){return ResponseEntity.status(409).body(err("CONFLICT",ex.getMessage(),409));}
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<?> business(BusinessException ex){return ResponseEntity.status(422).body(err("BUSINESS_ERROR",ex.getMessage()));}
+    public ResponseEntity<?> business(BusinessException ex){return ResponseEntity.status(422).body(err("BUSINESS_ERROR",ex.getMessage(),422));}
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> all(Exception ex){log.error("Unhandled: {}",ex.getMessage(),ex);return ResponseEntity.status(500).body(err("INTERNAL_ERROR","An unexpected error occurred"));}
+    public ResponseEntity<?> all(Exception ex){log.error("Unhandled: {}",ex.getMessage(),ex);return ResponseEntity.status(500).body(err("INTERNAL_ERROR","An unexpected error occurred",500));}
 }

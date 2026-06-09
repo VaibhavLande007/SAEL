@@ -29,7 +29,6 @@ public class NotificationLog {
 
     @Builder.Default private Integer attempts=0;
     @Column(name="sentAt") private OffsetDateTime sentAt;
-    @Column(name="deliveredAt") private OffsetDateTime deliveredAt;
     @Column(name="errorMessage",columnDefinition="TEXT") private String errorMessage;
     @Column(name="createdAt",updatable=false) private OffsetDateTime createdAt;
     @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="recipientId",insertable=false,updatable=false) private NotificationRecipient recipient;

@@ -9,7 +9,8 @@ import java.util.*;
 public class Device {
     @Id @Column(columnDefinition="uuid") private UUID id;
     @Column(name="tenantId",nullable=false) private UUID tenantId;
-    @Column(name="incubatorId",nullable=false) private UUID incubatorId;
+    @Column(name="incubatorId") private UUID incubatorId;
+    @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="labId") private Lab lab;
     @Column(name="deviceUid",nullable=false,unique=true) private String deviceUid;
     @Column(name="mqttClientId",unique=true) private String mqttClientId;
     @Column(name="deviceKey") private String deviceKey;

@@ -44,7 +44,7 @@ public class AuthController {
     @Data static class LoginReq {
         @NotBlank @Email private String email;
         @NotBlank private String password;
-        @NotBlank private String tenantSlug;
+        private String tenantSlug;
     }
     @Data static class ChangePwdReq {
         @NotBlank private String currentPassword;

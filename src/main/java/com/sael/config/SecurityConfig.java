@@ -1,5 +1,6 @@
 package com.sael.config;
 import com.sael.security.JwtAuthFilter;
+import com.sael.security.AdminSecretAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.*;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +25,7 @@ import java.util.List;
 // Suppress Spring Boot's auto-configured InMemoryUserDetailsManager — we use JWT, not form login
 public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
+    private final AdminSecretAuthFilter adminSecretAuthFilter;
 
     /**
      * No-op UserDetailsService — prevents Spring Boot from creating an
@@ -58,9 +60,13 @@ public class SecurityConfig {
                     "/api/v1/auth/login",
                     "/api/v1/auth/refresh",
                     "/actuator/health",
-                    "/api/v1/admin/tenants/bootstrap"
+                    "/api/v1/admin/tenants/bootstrap",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui.html"
                 ).permitAll()
                 .anyRequest().authenticated())
+            .addFilterBefore(adminSecretAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .build();
     }

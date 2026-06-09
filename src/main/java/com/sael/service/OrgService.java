@@ -1,6 +1,6 @@
 package com.sael.service;
 import com.sael.domain.entity.*;
-import com.sael.domain.enums.LabType;
+import com.sael.domain.enums.*;
 import com.sael.domain.repository.*;
 import com.sael.exception.*;
 import com.sael.security.TenantContext;
@@ -16,6 +16,11 @@ public class OrgService {
     private final NetworkRepository networkRepo;
     private final HospitalRepository hospitalRepo;
     private final LabRepository labRepo;
+    private final SystemConfigRepository systemConfigRepo;
+    private final TelemetryRepository telemetryRepo;
+    private final AlertRepository alertRepo;
+    private final UserScopeRepository userScopeRepo;
+    private final TenantRepository tenantRepo;
 
     // ── Networks ──────────────────────────────────────────────────────────────
     @Transactional(readOnly=true)
@@ -23,6 +28,7 @@ public class OrgService {
         return networkRepo.findAllByTenant_IdAndDeletedAtIsNull(TenantContext.requireTenantId(),p)
             .map(this::networkMap);
     }
+    @Transactional(readOnly=true)
     public Map<String,Object> getNetwork(UUID id){
         return networkMap(networkRepo.findByIdAndTenant_IdAndDeletedAtIsNull(id,TenantContext.requireTenantId())
             .orElseThrow(()->new ResourceNotFoundException("Network not found")));
@@ -54,6 +60,7 @@ public class OrgService {
     public Page<Map<String,Object>> listHospitals(UUID networkId,Pageable p){
         return hospitalRepo.findAllByNetwork_IdAndDeletedAtIsNull(networkId,p).map(this::hospitalMap);
     }
+    @Transactional(readOnly=true)
     public Map<String,Object> getHospital(UUID id){
         return hospitalMap(hospitalRepo.findByIdAndDeletedAtIsNull(id)
             .orElseThrow(()->new ResourceNotFoundException("Hospital not found")));
@@ -92,6 +99,7 @@ public class OrgService {
     public Page<Map<String,Object>> listAllLabs(UUID networkId,String status,Pageable p){
         return labRepo.findAllScoped(TenantContext.requireTenantId(),networkId,p).map(this::labMap);
     }
+    @Transactional(readOnly=true)
     public Map<String,Object> getLab(UUID id){
         return labMap(labRepo.findByIdAndDeletedAtIsNull(id)
             .orElseThrow(()->new ResourceNotFoundException("Lab not found")));
@@ -116,6 +124,173 @@ public class OrgService {
         if(name!=null)lab.setName(name);
         return labMap(labRepo.save(lab));
     }
+    @Transactional(readOnly=true)
+    public Map<String,Object> getNetworkSnapshot(){
+        UUID tenantId = TenantContext.requireTenantId();
+        UUID userId = TenantContext.getUserId();
+
+        // 1. Get network name
+        var networkConfig = systemConfigRepo.findByTenantIdAndKey(tenantId, "network_info").orElse(null);
+        String networkName = "Unknown Network";
+        if (networkConfig != null && networkConfig.getValue() != null) {
+            var nameVal = networkConfig.getValue().get("name");
+            if (nameVal != null) {
+                networkName = nameVal.toString();
+            }
+        }
+        // Fall back to tenant name
+        if (networkName.equals("Unknown Network")) {
+            var tenant = tenantRepo.findById(tenantId).orElse(null);
+            if (tenant != null) {
+                networkName = tenant.getName();
+            }
+        }
+
+        // 2. Fetch allowed lab IDs for user scopes
+        final List<UUID> allowedLabIds;
+        if (userId != null) {
+            var scopes = userScopeRepo.findAllByUser_Id(userId);
+            var labScopes = scopes.stream()
+                .filter(s -> s.getEntityType() == ScopeEntityType.LAB)
+                .map(UserScope::getEntityId)
+                .toList();
+            if (!scopes.isEmpty() && !labScopes.isEmpty()) {
+                allowedLabIds = labScopes;
+            } else {
+                allowedLabIds = null;
+            }
+        } else {
+            allowedLabIds = null;
+        }
+
+        // 3. Fetch all hospitals under the tenant
+        List<Hospital> hospitals = hospitalRepo.findAllByTenant_IdAndDeletedAtIsNull(tenantId);
+
+        int totalLabs = 0;
+        int onlineLabs = 0;
+        int nominalLabs = 0;
+        int warningLabs = 0;
+        int criticalLabs = 0;
+        int unackedAlertCount = 0;
+
+        var hospitalList = new ArrayList<Map<String, Object>>();
+
+        for (var h : hospitals) {
+            var labsList = new ArrayList<Map<String, Object>>();
+            
+            // Filter and sort labs by name
+            var sortedLabs = h.getLabs().stream()
+                .filter(l -> l.getDeletedAt() == null && l.getTenant().getId().equals(tenantId))
+                .filter(l -> allowedLabIds == null || allowedLabIds.contains(l.getId()))
+                .sorted(Comparator.comparing(Lab::getName))
+                .toList();
+
+            for (var l : sortedLabs) {
+                totalLabs++;
+
+                // Get first active device for the lab
+                var devices = l.getDevices().stream()
+                    .filter(d -> d.getTenantId().equals(tenantId))
+                    .toList();
+                
+                Device dev = devices.isEmpty() ? null : devices.get(0);
+                boolean isOnline = dev != null && Boolean.TRUE.equals(dev.getOnlineStatus());
+                if (isOnline) {
+                    onlineLabs++;
+                }
+
+                // Get active alerts (status == ACTIVE)
+                var activeAlerts = l.getAlerts().stream()
+                    .filter(a -> a.getStatus() == AlertStatus.ACTIVE && tenantId.equals(a.getTenantId()))
+                    .toList();
+                
+                int crits = (int) activeAlerts.stream().filter(a -> a.getSeverity() == AlertSeverity.CRIT).count();
+                int warns = (int) activeAlerts.stream().filter(a -> a.getSeverity() == AlertSeverity.WARN).count();
+                unackedAlertCount += activeAlerts.size();
+
+                String status;
+                if (!isOnline) {
+                    status = "OFFLINE";
+                } else if (crits > 0) {
+                    status = "CRITICAL";
+                    criticalLabs++;
+                } else if (warns > 0) {
+                    status = "WARNING";
+                    warningLabs++;
+                } else {
+                    status = "NOMINAL";
+                    nominalLabs++;
+                }
+
+                // Get latest telemetry reading
+                var latestTelOpt = telemetryRepo.findLatestByLabId(l.getId());
+                Map<String, Object> deviceMap = null;
+
+                if (dev != null) {
+                    var latestTelemetryMap = new LinkedHashMap<String, Object>();
+                    if (latestTelOpt.isPresent()) {
+                        var tel = latestTelOpt.get();
+                        latestTelemetryMap.put("temperature", tel.getTemperatureC() != null ? tel.getTemperatureC().doubleValue() : null);
+                        latestTelemetryMap.put("co2", tel.getCo2Ppm() != null ? tel.getCo2Ppm().doubleValue() : null);
+                        latestTelemetryMap.put("humidity", tel.getHumidityPct() != null ? tel.getHumidityPct().doubleValue() : null);
+                        latestTelemetryMap.put("pm25", tel.getPm25UgM3() != null ? tel.getPm25UgM3().doubleValue() : null);
+                        latestTelemetryMap.put("voc", tel.getTvocPpb() != null ? tel.getTvocPpb().intValue() : null);
+                        latestTelemetryMap.put("isDoorOpen", tel.getDoorIsOpen());
+                        latestTelemetryMap.put("recordedAt", tel.getRecordedAt().toString());
+                    }
+
+                    deviceMap = new LinkedHashMap<>();
+                    deviceMap.put("id", dev.getId());
+                    deviceMap.put("deviceUid", dev.getDeviceUid());
+                    deviceMap.put("onlineStatus", dev.getOnlineStatus());
+                    deviceMap.put("lastSeenAt", dev.getLastSeenAt() != null ? dev.getLastSeenAt().toString() : null);
+                    deviceMap.put("latestTelemetry", latestTelOpt.isPresent() ? latestTelemetryMap : null);
+                }
+
+                // Calculate labCode: last 6 characters of deviceUid or lab id in uppercase
+                String codeSource = dev != null ? dev.getDeviceUid() : l.getId().toString();
+                String labCode = codeSource.length() >= 6 
+                    ? codeSource.substring(codeSource.length() - 6).toUpperCase() 
+                    : codeSource.toUpperCase();
+
+                var labMap = new LinkedHashMap<String, Object>();
+                labMap.put("id", l.getId());
+                labMap.put("name", l.getName());
+                labMap.put("labCode", labCode);
+                labMap.put("city", h.getCity());
+                labMap.put("status", status);
+                labMap.put("device", deviceMap);
+
+                labsList.add(labMap);
+            }
+
+            // Only add hospital if it has labs matching allowed scope
+            if (!labsList.isEmpty()) {
+                var hospitalMap = new LinkedHashMap<String, Object>();
+                hospitalMap.put("id", h.getId());
+                hospitalMap.put("name", h.getName());
+                hospitalMap.put("city", h.getCity() != null ? h.getCity() : "");
+                hospitalMap.put("labs", labsList);
+                hospitalList.add(hospitalMap);
+            }
+        }
+
+        // Sort hospitals by name
+        hospitalList.sort(Comparator.comparing(m -> m.get("name").toString()));
+
+        var result = new LinkedHashMap<String, Object>();
+        result.put("networkName", networkName);
+        result.put("totalLabs", totalLabs);
+        result.put("onlineLabs", onlineLabs);
+        result.put("nominalLabs", nominalLabs);
+        result.put("warningLabs", warningLabs);
+        result.put("criticalLabs", criticalLabs);
+        result.put("unackedAlertCount", unackedAlertCount);
+        result.put("hospitals", hospitalList);
+
+        return result;
+    }
+
     @Transactional
     public void deleteLab(UUID id){
         var lab=labRepo.findByIdAndDeletedAtIsNull(id)

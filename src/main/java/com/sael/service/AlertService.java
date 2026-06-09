@@ -17,6 +17,7 @@ public class AlertService {
     private final AlertRuleRepository ruleRepo;
     private final UserRepository userRepo;
 
+    @Transactional(readOnly = true)
     public Page<Map<String,Object>> listAlerts(UUID labId,String status,String severity,Pageable p){
         UUID tid=TenantContext.requireTenantId();
         AlertStatus st=status!=null?AlertStatus.valueOf(status.toUpperCase()):null;

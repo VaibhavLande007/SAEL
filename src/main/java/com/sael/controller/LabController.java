@@ -93,4 +93,45 @@ public class LabController {
         kpiService.delete(labId,kpiId);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/trends")
+    public ResponseEntity<Map<String,Object>> getTrends(
+            @RequestParam(required=false) UUID labId,
+            @RequestParam(required=false) Integer days) {
+        return ResponseEntity.ok(telemetryService.getTrends(
+            com.sael.security.TenantContext.requireTenantId(),
+            labId,
+            days));
+    }
+
+    @GetMapping("/kpis")
+    public ResponseEntity<Map<String,Object>> getKpis(
+            @RequestParam(required=false) UUID labId) {
+        return ResponseEntity.ok(kpiService.getTenantKpis(
+            com.sael.security.TenantContext.requireTenantId(),
+            labId));
+    }
+
+    @PostMapping("/kpis")
+    @PreAuthorize("hasAnyRole('LAB_MANAGER','NETWORK_ADMIN','SYSTEM_ADMIN')")
+    public ResponseEntity<Map<String,Object>> submitKpiGlobal(@RequestBody Map<String,Object> body) {
+        UUID labId = UUID.fromString((String) body.get("labId"));
+        String weekStartDate = body.get("weekStartDate") != null ? (String) body.get("weekStartDate") : (String) body.get("weekStart");
+        return ResponseEntity.status(201).body(kpiService.submit(
+            labId,
+            weekStartDate,
+            body.get("fertilisationRate") != null ? new java.math.BigDecimal(body.get("fertilisationRate").toString()) : null,
+            body.get("blastocystRate") != null ? new java.math.BigDecimal(body.get("blastocystRate").toString()) : null,
+            body.get("implantationRate") != null ? new java.math.BigDecimal(body.get("implantationRate").toString()) : null,
+            body.get("m2Rate") != null ? new java.math.BigDecimal(body.get("m2Rate").toString()) : null,
+            (String) body.get("notes")
+        ));
+    }
+
+    @DeleteMapping("/kpis/{kpiId}")
+    @PreAuthorize("hasAnyRole('LAB_MANAGER','NETWORK_ADMIN','SYSTEM_ADMIN')")
+    public ResponseEntity<Void> deleteKpiDirect(@PathVariable UUID kpiId) {
+        kpiService.deleteKpiDirect(kpiId);
+        return ResponseEntity.noContent().build();
+    }
 }

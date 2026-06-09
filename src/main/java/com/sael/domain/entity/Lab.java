@@ -28,6 +28,7 @@ public class Lab {
     @Column(name="createdAt",updatable=false) private OffsetDateTime createdAt;
     @Column(name="updatedAt") private OffsetDateTime updatedAt;
     @Column(name="deletedAt") private OffsetDateTime deletedAt;
+    @OneToMany(mappedBy="lab",fetch=FetchType.LAZY) @Builder.Default private List<Device> devices=new ArrayList<>();
     @OneToMany(mappedBy="lab",fetch=FetchType.LAZY) @Builder.Default private List<Alert> alerts=new ArrayList<>();
     @OneToMany(mappedBy="lab",fetch=FetchType.LAZY) @Builder.Default private List<KpiSubmission> kpiSubmissions=new ArrayList<>();
     @PrePersist void prePersist(){if(id==null)id=UUID.randomUUID();createdAt=OffsetDateTime.now();updatedAt=OffsetDateTime.now();}

@@ -17,6 +17,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest req,HttpServletResponse res,FilterChain chain) throws ServletException,IOException {
         String header=req.getHeader("Authorization");
         String token=(StringUtils.hasText(header)&&header.startsWith("Bearer "))?header.substring(7):null;
+        if (token == null) {
+            token = req.getParameter("token");
+        }
         if(token!=null&&jwtService.isValid(token)){
             try{
                 var userId=jwtService.extractUserId(token);

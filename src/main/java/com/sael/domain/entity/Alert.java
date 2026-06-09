@@ -17,7 +17,6 @@ public class Alert {
     @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="labId",nullable=false) private Lab lab;
     @Column(name="sensorId") private UUID sensorId;
     @Column(name="metricColumn",length=50) private String metricColumn;
-    @Column(name="durationMs") private Long durationMs;
     @Column(name="deviceId",nullable=false) private UUID deviceId;
     @Column(name="alertRuleId") private UUID alertRuleId;
     @Column(nullable=false) private String parameter;

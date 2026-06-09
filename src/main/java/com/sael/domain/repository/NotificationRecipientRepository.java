@@ -8,4 +8,7 @@ public interface NotificationRecipientRepository extends JpaRepository<Notificat
     Page<NotificationRecipient> findAllByNetworkId(UUID networkId, Pageable p);
     List<NotificationRecipient> findAllByNetworkIdAndChannelAndIsActiveTrue(UUID networkId, NotificationChannel channel);
     boolean existsByNetworkIdAndAddress(UUID networkId, String address);
+    List<NotificationRecipient> findAllByTenantIdAndChannelOrderByCreatedAtAsc(UUID tenantId, NotificationChannel channel);
+    Optional<NotificationRecipient> findByIdAndTenantId(UUID id, UUID tenantId);
+    Optional<NotificationRecipient> findByTenantIdAndChannelAndAddress(UUID tenantId, NotificationChannel channel, String address);
 }

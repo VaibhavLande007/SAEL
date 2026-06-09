@@ -59,6 +59,44 @@ public class KpiService {
         kpiRepo.delete(kpi);
     }
 
+    @Transactional(readOnly=true)
+    public Map<String,Object> getTenantKpis(UUID tenantId, UUID labId) {
+        List<KpiSubmission> list;
+        if (labId != null) {
+            list = kpiRepo.findByTenantIdAndLabId(tenantId, labId);
+        } else {
+            list = kpiRepo.findByTenantId(tenantId);
+        }
+        List<Map<String,Object>> serialized = list.stream().map(k -> {
+            Map<String,Object> m = new LinkedHashMap<>();
+            m.put("id", k.getId().toString());
+            m.put("labId", k.getLab().getId().toString());
+            m.put("labName", k.getLab().getName());
+            var ws = LocalDate.ofYearDay(k.getYear(), 1)
+                .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, k.getWeekNumber())
+                .with(DayOfWeek.MONDAY);
+            m.put("weekStartDate", ws.toString());
+            m.put("fertilisationRate", k.getFertilisationRate());
+            m.put("blastocystRate", k.getBlastocystRate());
+            m.put("implantationRate", k.getImplantationRate());
+            m.put("m2Rate", k.getM2Rate());
+            m.put("submittedById", k.getSubmittedBy() != null ? k.getSubmittedBy().toString() : null);
+            m.put("submittedByName", k.getSubmittedByUser() == null ? "System" : k.getSubmittedByUser().getFullName());
+            return m;
+        }).toList();
+        return Map.of("kpis", serialized);
+    }
+
+    @Transactional
+    public void deleteKpiDirect(UUID kpiId) {
+        var kpi = kpiRepo.findById(kpiId)
+            .orElseThrow(() -> new ResourceNotFoundException("KPI entry not found"));
+        if (!kpi.getTenantId().equals(TenantContext.requireTenantId())) {
+            throw new ResourceNotFoundException("KPI entry not found");
+        }
+        kpiRepo.delete(kpi);
+    }
+
     public Map<String,Object> networkSummary(UUID networkId,Integer rangeWeeks){
         UUID tid=TenantContext.requireTenantId();
         int weeks=rangeWeeks!=null?rangeWeeks:12;

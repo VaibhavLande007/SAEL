@@ -22,14 +22,22 @@ public class AuthService {
 
     @Transactional
     public Map<String,Object> login(String email, String password, String tenantSlug){
-        // Validate tenant
-        var tenant=tenantRepo.findBySlugAndDeletedAtIsNull(tenantSlug)
-            .orElseThrow(()->new ResourceNotFoundException("Tenant '"+tenantSlug+"' not found"));
-        // Find user
+        // Find user first
         var user=userRepo.findByEmailAndDeletedAtIsNull(email)
             .orElseThrow(()->new AuthException("Invalid email or password"));
-        if(!user.getTenant().getId().equals(tenant.getId()))
-            throw new AuthException("Invalid email or password");
+
+        Tenant tenant;
+        if (tenantSlug == null || tenantSlug.trim().isEmpty()) {
+            tenant = user.getTenant();
+        } else {
+            // Validate tenant matching
+            var foundTenant = tenantRepo.findBySlugAndDeletedAtIsNull(tenantSlug)
+                .orElseThrow(()->new ResourceNotFoundException("Tenant '"+tenantSlug+"' not found"));
+            if(!user.getTenant().getId().equals(foundTenant.getId()))
+                throw new AuthException("Invalid email or password");
+            tenant = foundTenant;
+        }
+
         if(!encoder.matches(password,user.getPasswordHash()))
             throw new AuthException("Invalid email or password");
         if(Boolean.FALSE.equals(user.getIsActive()))
@@ -48,6 +56,7 @@ public class AuthService {
         var userMap=new LinkedHashMap<String,Object>();
         userMap.put("id",user.getId());
         userMap.put("name",user.getFullName());
+        userMap.put("fullName",user.getFullName());
         userMap.put("email",user.getEmail());
         userMap.put("role",primaryRole);
         userMap.put("tenantId",tenant.getId());
@@ -56,6 +65,7 @@ public class AuthService {
         userMap.put("scopes",scopes);
         var resp=new LinkedHashMap<String,Object>();
         resp.put("token",token);
+        resp.put("accessToken",token);
         resp.put("refreshToken",UUID.randomUUID().toString()+UUID.randomUUID().toString().replace("-",""));
         resp.put("expiresIn",jwt.getExpiryMs()/1000);
         resp.put("user",userMap);

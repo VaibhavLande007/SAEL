@@ -15,6 +15,12 @@ public class NetworkController {
     private final KpiService kpiService;
     private final WhatsAppService whatsAppService;
 
+    // ── Network Snapshot (Frontend Compatibility) ────────────────────────────
+    @GetMapping("/network")
+    public ResponseEntity<Map<String,Object>> getNetworkSnapshot(){
+        return ResponseEntity.ok(orgService.getNetworkSnapshot());
+    }
+
     // ── Networks ──────────────────────────────────────────────────────────────
     @GetMapping("/networks")
     public ResponseEntity<Map<String,Object>> listNetworks(

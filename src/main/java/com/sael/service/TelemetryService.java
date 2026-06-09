@@ -226,4 +226,72 @@ public class TelemetryService {
         return block;
     }
 
-    private String unitFor(String t){return switch(t){case "TEMPERATURE"->"°C";case "CO2"->"%";case "HUMIDITY"->"%";case "PM25","PM10","PM1"->"µg/m³";case "VOC"->"ppb";case "DOOR"->"open";default->"";};}}
+    private String unitFor(String t){return switch(t){case "TEMPERATURE"->"°C";case "CO2"->"%";case "HUMIDITY"->"%";case "PM25","PM10","PM1"->"µg/m³";case "VOC"->"ppb";case "DOOR"->"open";default->"";};}
+
+    public Map<String,Object> getTrends(UUID tenantId, UUID labId, Integer days) {
+        int d = days != null ? days : 84;
+        var since = OffsetDateTime.now(ZoneOffset.UTC).minusDays(Math.min(d, 90));
+        List<Object[]> rows;
+        if (labId != null) {
+            rows = telemetryRepo.findRollupsByTenantAndLab(tenantId, labId, since);
+        } else {
+            rows = telemetryRepo.findRollupsByTenant(tenantId, since);
+        }
+        var byWeek = new LinkedHashMap<String, Map<String, List<Double>>>();
+        for (var row : rows) {
+            OffsetDateTime hourBucket;
+            if (row[0] instanceof OffsetDateTime) {
+                hourBucket = (OffsetDateTime) row[0];
+            } else if (row[0] instanceof java.sql.Timestamp) {
+                hourBucket = ((java.sql.Timestamp) row[0]).toInstant().atOffset(ZoneOffset.UTC);
+            } else {
+                hourBucket = OffsetDateTime.parse(row[0].toString());
+            }
+            String key = weekLabel(hourBucket);
+            byWeek.computeIfAbsent(key, k -> {
+                var m = new HashMap<String, List<Double>>();
+                m.put("temp", new ArrayList<>());
+                m.put("co2", new ArrayList<>());
+                m.put("hum", new ArrayList<>());
+                m.put("pm25", new ArrayList<>());
+                m.put("tvoc", new ArrayList<>());
+                return m;
+            });
+            var lists = byWeek.get(key);
+            if (row[1] != null) lists.get("temp").add(((Number) row[1]).doubleValue());
+            if (row[2] != null) lists.get("co2").add(((Number) row[2]).doubleValue());
+            if (row[3] != null) lists.get("hum").add(((Number) row[3]).doubleValue());
+            if (row[4] != null) lists.get("pm25").add(((Number) row[4]).doubleValue());
+            if (row[5] != null) lists.get("tvoc").add(((Number) row[5]).doubleValue());
+        }
+        List<Map<String,Object>> dataList = new ArrayList<>();
+        for (var entry : byWeek.entrySet()) {
+            String week = entry.getKey();
+            var lists = entry.getValue();
+            var m = new LinkedHashMap<String,Object>();
+            m.put("week", week);
+            m.put("tempAvg", avg(lists.get("temp")));
+            m.put("co2Avg", avg(lists.get("co2")));
+            m.put("humidityAvg", avg(lists.get("hum")));
+            m.put("pm25Avg", avg(lists.get("pm25")));
+            m.put("tvocAvg", avg(lists.get("tvoc")));
+            dataList.add(m);
+        }
+        return Map.of("data", dataList);
+    }
+
+    private String weekLabel(OffsetDateTime odt) {
+        var localDate = odt.atZoneSameInstant(ZoneOffset.UTC).toLocalDate();
+        var monday = localDate.with(DayOfWeek.MONDAY);
+        var formatter = java.time.format.DateTimeFormatter.ofPattern("MMM d", Locale.US);
+        return monday.format(formatter);
+    }
+
+    private Double avg(List<Double> vals) {
+        if (vals.isEmpty()) return null;
+        double sum = 0;
+        for (var v : vals) sum += v;
+        double result = sum / vals.size();
+        return Math.round(result * 100.0) / 100.0;
+    }
+}

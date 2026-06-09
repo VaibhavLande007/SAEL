@@ -39,4 +39,28 @@ public interface TelemetryRepository extends JpaRepository<TelemetryReading, Lon
             @Param("labId") UUID labId,
             @Param("from") OffsetDateTime from,
             @Param("to") OffsetDateTime to);
+
+    @Query(value = """
+        SELECT r."hourBucket", r."tempAvg", r."co2Avg", r."humidityAvg", r."pm25Avg", r."tvocAvg"
+        FROM   telemetry_hourly_rollups r
+        WHERE  r."tenantId" = :tid
+          AND  r."hourBucket" >= :since
+        ORDER  BY r."hourBucket" ASC
+        """, nativeQuery = true)
+    List<Object[]> findRollupsByTenant(
+            @Param("tid") UUID tenantId,
+            @Param("since") OffsetDateTime since);
+
+    @Query(value = """
+        SELECT r."hourBucket", r."tempAvg", r."co2Avg", r."humidityAvg", r."pm25Avg", r."tvocAvg"
+        FROM   telemetry_hourly_rollups r
+        WHERE  r."tenantId" = :tid
+          AND  r."labId" = :lid
+          AND  r."hourBucket" >= :since
+        ORDER  BY r."hourBucket" ASC
+        """, nativeQuery = true)
+    List<Object[]> findRollupsByTenantAndLab(
+            @Param("tid") UUID tenantId,
+            @Param("lid") UUID labId,
+            @Param("since") OffsetDateTime since);
 }

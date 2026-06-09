@@ -110,7 +110,7 @@ public class WhatsAppService {
         m.put("messageType","alert");m.put("alertId",l.getAlertId());
         m.put("messagePreview",l.getMessagePreview());
         m.put("status",l.getStatus().name().toLowerCase());
-        m.put("sentAt",l.getSentAt());m.put("deliveredAt",l.getDeliveredAt());
+        m.put("sentAt",l.getSentAt());m.put("deliveredAt",null);
         return m;
     }
 }

@@ -34,8 +34,17 @@ spring:
   flyway:
     enabled: false            # Prisma manages migrations
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+admin:
+  secret: ${ADMIN_SECRET:9f7Kx2PqLm8Rw4NzYt6Vc3Hd1Bj5As0Q}
+
 jwt:
-  secret: ${JWT_SECRET:bXlTdXBlclNlY3JldEtleUZvclNBRUxQbGF0Zm9ybTIwMjVTZWN1cmVCYXNlNjRFbmNvZGVkU3RyaW5n}
+  secret: ${JWT_SECRET:bXlTdXBlclNlY3JldEtleUZvclNBRUxQbGF0Zm9ybTIwMjVTZWN1cmVCYXNlNjRGbmNvZGVkU3RyaW5n}
   access-token-expiry-ms: 86400000    # 24h
   refresh-token-expiry-ms: 604800000  # 7d
 

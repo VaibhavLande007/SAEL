@@ -6,6 +6,6 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import java.util.*;
 public interface AiInsightRepository extends JpaRepository<AiInsight,UUID> {
-    @Query("SELECT i FROM AiInsight i WHERE i.tenantId=:tid AND (:labId IS NULL OR i.labId=:labId) AND (:priority IS NULL OR i.priority=:priority) AND (:type IS NULL OR i.insightType=:type) ORDER BY i.createdAt DESC")
+    @Query("SELECT i FROM AiInsight i WHERE i.tenantId=:tid AND (coalesce(:labId, i.labId) = i.labId) AND (coalesce(:priority, i.priority) = i.priority) AND (coalesce(:type, i.insightType) = i.insightType) ORDER BY i.createdAt DESC")
     Page<AiInsight> findFiltered(@Param("tid") UUID tenantId, @Param("labId") UUID labId, @Param("priority") InsightPriority priority, @Param("type") InsightType type, Pageable p);
 }
