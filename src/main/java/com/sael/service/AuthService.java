@@ -49,7 +49,7 @@ public class AuthService {
         // Build scopes
         var scopes=buildScopes(user);
         // Issue token
-        String token=jwt.generate(user.getId(),tenant.getId(),roles);
+        String token=jwt.generate(user.getId(),tenant.getId(),roles,user.getFullName());
         // Update last login
         userRepo.updateLastLogin(user.getId(),OffsetDateTime.now());
         // Build response exactly as per API spec

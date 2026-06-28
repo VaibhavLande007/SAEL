@@ -38,7 +38,7 @@ public class LabController {
     }
 
     @DeleteMapping("/labs/{id}")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasAnyRole('NETWORK_ADMIN','SYSTEM_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable UUID id){
         orgService.deleteLab(id);
         return ResponseEntity.noContent().build();

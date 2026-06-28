@@ -13,9 +13,10 @@ public class JwtService {
     @Value("${jwt.secret}") private String secret;
     @Value("${jwt.access-token-expiry-ms}") private long expiryMs;
     private SecretKey key(){return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));}
-    public String generate(UUID userId,UUID tenantId,List<String> roles){
+    public String generate(UUID userId,UUID tenantId,List<String> roles,String fullName){
         return Jwts.builder().subject(userId.toString())
             .claim("tenantId",tenantId.toString()).claim("roles",roles)
+            .claim("fullName",fullName)
             .issuedAt(new Date()).expiration(new Date(System.currentTimeMillis()+expiryMs))
             .signWith(key()).compact();
     }

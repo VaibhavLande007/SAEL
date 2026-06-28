@@ -41,10 +41,11 @@ public class OrgService {
         return networkMap(networkRepo.save(n));
     }
     @Transactional
-    public Map<String,Object> updateNetwork(UUID id,String name){
+    public Map<String,Object> updateNetwork(UUID id,String name,String timezone){
         var n=networkRepo.findByIdAndTenant_IdAndDeletedAtIsNull(id,TenantContext.requireTenantId())
             .orElseThrow(()->new ResourceNotFoundException("Network not found"));
         if(name!=null)n.setName(name);
+        if(timezone!=null)n.setTimezone(timezone);
         return networkMap(networkRepo.save(n));
     }
     @Transactional
@@ -62,8 +63,10 @@ public class OrgService {
     }
     @Transactional(readOnly=true)
     public Map<String,Object> getHospital(UUID id){
-        return hospitalMap(hospitalRepo.findByIdAndDeletedAtIsNull(id)
-            .orElseThrow(()->new ResourceNotFoundException("Hospital not found")));
+        var h = hospitalRepo.findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(()->new ResourceNotFoundException("Hospital not found"));
+        checkTenant(h.getTenant());
+        return hospitalMap(h);
     }
     @Transactional
     public Map<String,Object> createHospital(UUID networkId,String name,String city,String address){
@@ -77,6 +80,7 @@ public class OrgService {
     public Map<String,Object> updateHospital(UUID id,String name,String city,String address){
         var h=hospitalRepo.findByIdAndDeletedAtIsNull(id)
             .orElseThrow(()->new ResourceNotFoundException("Hospital not found"));
+        checkTenant(h.getTenant());
         if(name!=null)h.setName(name);
         if(city!=null)h.setCity(city);
         if(address!=null)h.setAddress(address);
@@ -86,6 +90,10 @@ public class OrgService {
     public void deleteHospital(UUID id){
         var h=hospitalRepo.findByIdAndDeletedAtIsNull(id)
             .orElseThrow(()->new ResourceNotFoundException("Hospital not found"));
+        checkTenant(h.getTenant());
+        if (h.getLabs().stream().anyMatch(l -> l.getDeletedAt() == null)) {
+            throw new ConflictException("Remove all labs before deleting this hospital");
+        }
         h.setDeletedAt(OffsetDateTime.now());
         hospitalRepo.save(h);
     }
@@ -101,13 +109,16 @@ public class OrgService {
     }
     @Transactional(readOnly=true)
     public Map<String,Object> getLab(UUID id){
-        return labMap(labRepo.findByIdAndDeletedAtIsNull(id)
-            .orElseThrow(()->new ResourceNotFoundException("Lab not found")));
+        var l = labRepo.findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(()->new ResourceNotFoundException("Lab not found"));
+        checkTenant(l.getTenant());
+        return labMap(l);
     }
     @Transactional
     public Map<String,Object> createLab(UUID hospitalId,String name){
         var hospital=hospitalRepo.findByIdAndDeletedAtIsNull(hospitalId)
             .orElseThrow(()->new ResourceNotFoundException("Hospital not found"));
+        checkTenant(hospital.getTenant());
         var t=new com.sael.domain.entity.Tenant();t.setId(TenantContext.requireTenantId());
         var lab=Lab.builder()
                 .tenant(t)
@@ -121,6 +132,7 @@ public class OrgService {
     public Map<String,Object> updateLab(UUID id,String name){
         var lab=labRepo.findByIdAndDeletedAtIsNull(id)
             .orElseThrow(()->new ResourceNotFoundException("Lab not found"));
+        checkTenant(lab.getTenant());
         if(name!=null)lab.setName(name);
         return labMap(labRepo.save(lab));
     }
@@ -278,7 +290,11 @@ public class OrgService {
         // Sort hospitals by name
         hospitalList.sort(Comparator.comparing(m -> m.get("name").toString()));
 
+        List<Network> nets = networkRepo.findAllByTenant_IdAndDeletedAtIsNull(tenantId);
+        String networkId = nets.isEmpty() ? null : nets.get(0).getId().toString();
+
         var result = new LinkedHashMap<String, Object>();
+        result.put("networkId", networkId);
         result.put("networkName", networkName);
         result.put("totalLabs", totalLabs);
         result.put("onlineLabs", onlineLabs);
@@ -295,6 +311,10 @@ public class OrgService {
     public void deleteLab(UUID id){
         var lab=labRepo.findByIdAndDeletedAtIsNull(id)
             .orElseThrow(()->new ResourceNotFoundException("Lab not found"));
+        checkTenant(lab.getTenant());
+        if (!lab.getDevices().isEmpty()) {
+            throw new ConflictException("Remove the device before deleting this lab");
+        }
         lab.setDeletedAt(OffsetDateTime.now());
         labRepo.save(lab);
     }
@@ -331,5 +351,12 @@ public class OrgService {
         m.put("status","nominal");m.put("deviceCount",0);
         m.put("lastReadingAt",null);m.put("createdAt",l.getCreatedAt());
         return m;
+    }
+
+    private void checkTenant(Tenant tenant) {
+        UUID tid = TenantContext.getTenantId();
+        if (tid != null && tenant != null && !tenant.getId().equals(tid)) {
+            throw new org.springframework.security.access.AccessDeniedException("Access denied");
+        }
     }
 }

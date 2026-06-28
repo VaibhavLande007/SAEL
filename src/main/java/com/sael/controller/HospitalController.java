@@ -23,7 +23,7 @@ public class HospitalController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    @PreAuthorize("hasAnyRole('NETWORK_ADMIN','SYSTEM_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable UUID id){
         orgService.deleteHospital(id);
         return ResponseEntity.noContent().build();

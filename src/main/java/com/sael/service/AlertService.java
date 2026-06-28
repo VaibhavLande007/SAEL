@@ -46,6 +46,23 @@ public class AlertService {
         return resp;
     }
 
+    @Transactional
+    public Map<String,Object> resolve(UUID alertId){
+        UUID tid=TenantContext.requireTenantId();
+        var alert=alertRepo.findById(alertId)
+            .filter(a->a.getTenantId().equals(tid))
+            .orElseThrow(()->new ResourceNotFoundException("Alert not found"));
+        if(alert.getStatus()==AlertStatus.RESOLVED)
+            throw new BusinessException("Alert is already resolved");
+        alert.setStatus(AlertStatus.RESOLVED);
+        alert.setResolvedAt(OffsetDateTime.now());
+        var saved=alertRepo.save(alert);
+        var resp=new LinkedHashMap<String,Object>();
+        resp.put("id",saved.getId());resp.put("status","resolved");
+        resp.put("resolvedAt",saved.getResolvedAt());
+        return resp;
+    }
+
     public Map<String,Object> getThresholds(UUID networkId){
         // Return network-level alert rules as thresholds
         var rules=ruleRepo.findByTenantIdAndScopeIdAndIsActiveTrue(TenantContext.requireTenantId(),networkId);

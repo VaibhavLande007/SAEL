@@ -20,6 +20,7 @@ public class ConfigService {
     private final NotificationRecipientRepository recipientRepo;
     private final UserScopeRepository userScopeRepo;
     private final TenantRepository tenantRepo;
+    private final NetworkRepository networkRepo;
 
     @Transactional(readOnly = true)
     public Map<String, Object> getConfig() {
@@ -49,8 +50,14 @@ public class ConfigService {
             }
         }
 
+        List<Network> nets = networkRepo.findAllByTenant_IdAndDeletedAtIsNull(tenantId);
+        String networkId = nets.isEmpty() ? null : nets.get(0).getId().toString();
+        String timezone = nets.isEmpty() ? "Asia/Kolkata" : nets.get(0).getTimezone();
+
         Map<String, Object> result = new LinkedHashMap<>();
+        result.put("networkId", networkId);
         result.put("networkName", networkName);
+        result.put("timezone", timezone);
         result.put("thresholds", mapToFrontendThresholds(dbThresholds));
         result.put("toggles", mapToFrontendToggles(dbToggles));
         return result;

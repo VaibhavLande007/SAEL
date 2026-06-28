@@ -44,7 +44,7 @@ public class NetworkController {
     @PatchMapping("/networks/{id}")
     @PreAuthorize("hasAnyRole('NETWORK_ADMIN','SYSTEM_ADMIN')")
     public ResponseEntity<Map<String,Object>> updateNetwork(@PathVariable UUID id,@RequestBody Map<String,String> body){
-        return ResponseEntity.ok(orgService.updateNetwork(id,body.get("name")));
+        return ResponseEntity.ok(orgService.updateNetwork(id,body.get("name"),body.get("timezone")));
     }
 
     @DeleteMapping("/networks/{id}")

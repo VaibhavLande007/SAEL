@@ -28,4 +28,9 @@ public class AlertController {
     public ResponseEntity<Map<String,Object>> acknowledge(@PathVariable UUID alertId){
         return ResponseEntity.ok(alertService.acknowledge(alertId));
     }
+
+    @PostMapping("/alerts/{alertId}/resolve")
+    public ResponseEntity<Map<String,Object>> resolve(@PathVariable UUID alertId){
+        return ResponseEntity.ok(alertService.resolve(alertId));
+    }
 }

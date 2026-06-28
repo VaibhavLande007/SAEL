@@ -37,6 +37,7 @@ public class UserManagementService {
         user=userRepo.save(user);
         // Assign role
         var roleEntity=roleRepo.findByNameAndTenantIdIsNull(role.toUpperCase())
+            .or(() -> roleRepo.findByNameAndTenantIdIsNull(role.toLowerCase()))
             .orElseThrow(()->new ResourceNotFoundException("Role not found: "+role));
         userRoleRepo.save(UserRole.builder().userId(user.getId()).roleId(roleEntity.getId()).grantedBy(TenantContext.getUserId()).build());
         // Assign scopes
@@ -64,6 +65,7 @@ public class UserManagementService {
         if(role!=null){
             userRoleRepo.deleteAll(userRoleRepo.findAllByUserId(userId));
             var roleEntity=roleRepo.findByNameAndTenantIdIsNull(role.toUpperCase())
+                .or(() -> roleRepo.findByNameAndTenantIdIsNull(role.toLowerCase()))
                 .orElseThrow(()->new ResourceNotFoundException("Role not found: "+role));
             userRoleRepo.save(UserRole.builder().userId(userId).roleId(roleEntity.getId()).build());
         }

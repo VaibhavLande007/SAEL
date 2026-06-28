@@ -12,6 +12,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ConfigController {
     private final ConfigService configService;
+    private final com.sael.domain.repository.NetworkRepository networkRepo;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getConfig() {
@@ -50,7 +51,13 @@ public class ConfigController {
 
     @GetMapping("/centres")
     public ResponseEntity<Map<String, Object>> getCentres() {
-        return ResponseEntity.ok(Map.of("hospitals", configService.getCentres()));
+        UUID tenantId = com.sael.security.TenantContext.requireTenantId();
+        var nets = networkRepo.findAllByTenant_IdAndDeletedAtIsNull(tenantId);
+        String networkId = nets.isEmpty() ? null : nets.get(0).getId().toString();
+        return ResponseEntity.ok(Map.of(
+            "networkId", networkId != null ? networkId : "",
+            "hospitals", configService.getCentres()
+        ));
     }
 
     @GetMapping("/whatsapp")

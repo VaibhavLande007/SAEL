@@ -648,6 +648,7 @@ public class AdminService {
         String roleStr = (String) body.getOrDefault("role", "viewer");
 
         var role = roleRepo.findByNameAndTenantIdIsNull(roleStr.toUpperCase())
+            .or(() -> roleRepo.findByNameAndTenantIdIsNull(roleStr.toLowerCase()))
             .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleStr));
 
         var user = User.builder()
@@ -670,6 +671,62 @@ public class AdminService {
         m.put("isActive", user.getIsActive());
         m.put("createdAt", user.getCreatedAt());
         return m;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> listNetworkUsers(UUID networkId) {
+        var network = networkRepo.findById(networkId)
+            .orElseThrow(() -> new ResourceNotFoundException("Network not found"));
+        var users = userRepo.findAllByTenant_IdAndDeletedAtIsNull(network.getTenant().getId(), Pageable.unpaged()).getContent();
+        var resp = new ArrayList<Map<String, Object>>();
+        for (var u : users) {
+            var roles = u.getUserRoles().stream().map(ur -> ur.getRole().getName().toUpperCase()).toList();
+            String primaryRole = roles.isEmpty() ? "EMBRYOLOGIST" : roles.get(0);
+            var m = new LinkedHashMap<String, Object>();
+            m.put("id", u.getId());
+            m.put("name", u.getFullName());
+            m.put("email", u.getEmail());
+            m.put("role", primaryRole);
+            m.put("isActive", u.getIsActive());
+            m.put("createdAt", u.getCreatedAt());
+            resp.add(m);
+        }
+        return resp;
+    }
+
+    @Transactional
+    public Map<String, Object> updateNetworkUser(UUID userId, Map<String, Object> body) {
+        var u = userRepo.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (body.containsKey("fullName")) u.setFullName((String) body.get("fullName"));
+        if (body.containsKey("isActive")) u.setIsActive((Boolean) body.get("isActive"));
+        if (body.containsKey("role")) {
+            String roleStr = (String) body.get("role");
+            var role = roleRepo.findByNameAndTenantIdIsNull(roleStr.toUpperCase())
+                .or(() -> roleRepo.findByNameAndTenantIdIsNull(roleStr.toLowerCase()))
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleStr));
+            userRoleRepo.deleteAll(userRoleRepo.findAllByUserId(userId));
+            userRoleRepo.save(UserRole.builder().userId(userId).roleId(role.getId()).build());
+        }
+        userRepo.save(u);
+
+        var roles = u.getUserRoles().stream().map(ur -> ur.getRole().getName().toUpperCase()).toList();
+        String primaryRole = roles.isEmpty() ? "EMBRYOLOGIST" : roles.get(0);
+        var m = new LinkedHashMap<String, Object>();
+        m.put("id", u.getId());
+        m.put("name", u.getFullName());
+        m.put("email", u.getEmail());
+        m.put("role", primaryRole);
+        m.put("isActive", u.getIsActive());
+        return m;
+    }
+
+    @Transactional
+    public void deleteNetworkUser(UUID userId) {
+        var u = userRepo.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        u.setDeletedAt(OffsetDateTime.now());
+        userRepo.save(u);
     }
 
     // ── Admin-facing Recipient endpoints ──────────────────────────────────────

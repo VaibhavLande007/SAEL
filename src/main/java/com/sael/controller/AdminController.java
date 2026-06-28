@@ -85,6 +85,23 @@ public class AdminController {
         return ResponseEntity.status(201).body(adminService.createUser(networkId, body));
     }
 
+    @GetMapping("/networks/{networkId}/users")
+    public ResponseEntity<List<Map<String, Object>>> listNetworkUsers(@PathVariable UUID networkId) {
+        return ResponseEntity.ok(adminService.listNetworkUsers(networkId));
+    }
+
+    @PatchMapping("/users/{id}")
+    public ResponseEntity<Map<String, Object>> updateNetworkUser(
+            @PathVariable UUID id, @RequestBody Map<String, Object> body) {
+        return ResponseEntity.ok(adminService.updateNetworkUser(id, body));
+    }
+
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<Void> deleteNetworkUser(@PathVariable UUID id) {
+        adminService.deleteNetworkUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/networks/{networkId}/hospitals")
     public ResponseEntity<Map<String, Object>> createHospital(
             @PathVariable UUID networkId, @RequestBody Map<String, Object> body) {
