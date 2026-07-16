@@ -18,4 +18,8 @@ public interface AlertRepository extends JpaRepository<Alert,UUID> {
     Page<Alert> findGlobalFiltered(@Param("status") AlertStatus status, @Param("severity") AlertSeverity severity, Pageable p);
     @Query("SELECT a FROM Alert a WHERE a.lab.id=:labId AND (:status IS NULL OR a.status=:status) ORDER BY a.triggeredAt DESC")
     Page<Alert> findByLabAndStatus(@Param("labId") UUID labId, @Param("status") AlertStatus status, Pageable p);
+    List<Alert> findAllByLab_IdAndStatus(UUID labId, AlertStatus status);
+    Optional<Alert> findFirstByLab_IdAndMetricColumnAndStatus(UUID labId, String metricColumn, AlertStatus status);
+    Optional<Alert> findFirstByLab_IdAndMetricColumnAndTriggeredAtAfterOrderByTriggeredAtDesc(UUID labId, String metricColumn, OffsetDateTime after);
+    List<Alert> findAllByStatusAndSeverityAndTriggeredAtBefore(AlertStatus status, AlertSeverity severity, OffsetDateTime before);
 }

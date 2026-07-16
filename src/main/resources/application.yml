@@ -53,3 +53,17 @@ logging:
     root: INFO
     com.sael: DEBUG
     org.springframework.security: INFO
+
+mqtt:
+  broker-url: ${MQTT_BROKER_URL:ssl://localhost:8883}
+  username: ${MQTT_USERNAME:}
+  password: ${MQTT_PASSWORD:}
+  client-id: ${MQTT_CLIENT_ID:sael-spring-ingester}
+  conn-timeout: 30
+  keep-alive: 60
+
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID:}
+  auth-token: ${TWILIO_AUTH_TOKEN:}
+  whatsapp-from: ${TWILIO_WHATSAPP_FROM:whatsapp:+14155238886}
+  voice-from: ${TWILIO_VOICE_FROM:}

@@ -9,4 +9,6 @@ import java.util.*;
 public interface NotificationLogRepository extends JpaRepository<NotificationLog,UUID> {
     @Query("SELECT l FROM NotificationLog l WHERE l.recipient.networkId=:nid AND (coalesce(:status, l.status) = l.status) AND (:from IS NULL OR l.createdAt>=:from) AND (:to IS NULL OR l.createdAt<=:to) ORDER BY l.createdAt DESC")
     Page<NotificationLog> findByNetwork(@Param("nid") UUID networkId, @Param("status") NotificationStatus status, @Param("from") OffsetDateTime from, @Param("to") OffsetDateTime to, Pageable p);
+    boolean existsByAlertIdAndRecipientId(UUID alertId, UUID recipientId);
+    boolean existsByAlertIdAndMessagePreviewStartingWith(UUID alertId, String prefix);
 }

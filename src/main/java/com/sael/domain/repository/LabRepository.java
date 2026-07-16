@@ -14,4 +14,7 @@ public interface LabRepository extends JpaRepository<Lab,UUID> {
     long countByHospital_IdAndDeletedAtIsNull(UUID hospitalId);
     long countByHospital_Network_IdAndDeletedAtIsNull(UUID networkId);
     long countByDeletedAtIsNull();
+
+    @Query("SELECT l FROM Lab l JOIN FETCH l.hospital h JOIN FETCH h.network WHERE l.id = :id")
+    Optional<Lab> findByIdWithHospitalAndNetwork(@Param("id") UUID id);
 }
